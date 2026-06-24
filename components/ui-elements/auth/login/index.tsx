@@ -1,9 +1,37 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { toast } from "sonner";
 
 export default function Login() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    setPending(true);
+    const res = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+    setPending(false);
+
+    if (res?.error) {
+      toast.error("Invalid email or password");
+      return;
+    }
+
+    router.push("/projects");
+    router.refresh();
+  }
 
   return (
     <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-linear-to-br from-purple-900 via-purple-800 to-primary px-4 py-10">
@@ -79,8 +107,8 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Form (UI only — no auth wired) */}
-          <form className="flex flex-col gap-5">
+          {/* Login form */}
+          <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="email"
@@ -153,9 +181,11 @@ export default function Login() {
 
             <button
               type="submit"
-              className="mt-1 w-full rounded-xl bg-linear-to-r from-primary to-purple-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/30 transition hover:shadow-xl hover:shadow-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 active:scale-[0.99]"
+              disabled={pending}
+              className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-primary to-purple-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/30 transition hover:shadow-xl hover:shadow-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Sign in
+              {pending && <SpinnerIcon className="h-4 w-4 animate-spin" />}
+              {pending ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
@@ -186,6 +216,22 @@ function CheckIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
     >
       <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function SpinnerIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
   );
 }
