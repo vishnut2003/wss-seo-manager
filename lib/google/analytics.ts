@@ -157,3 +157,59 @@ export async function getConnectorData(
     topChannels: toRows(topChannels),
   };
 }
+
+export interface GaDailySnapshot {
+  date: string;
+  totals: GaTotals;
+  topPages: GaRow[];
+  topChannels: GaRow[];
+}
+
+/** Yesterday's GA4 data (GA4 has no reporting lag). */
+export async function getDailySnapshot(
+  accessToken: string,
+  propertyId: string
+): Promise<GaDailySnapshot> {
+  const dateRanges = [{ startDate: "yesterday", endDate: "yesterday" }];
+
+  const [totalsRows, topPages, topChannels] = await Promise.all([
+    runReport(accessToken, propertyId, {
+      dateRanges,
+      metrics: [
+        { name: "sessions" },
+        { name: "totalUsers" },
+        { name: "screenPageViews" },
+        { name: "averageSessionDuration" },
+      ],
+    }),
+    runReport(accessToken, propertyId, {
+      dateRanges,
+      dimensions: [{ name: "pagePath" }],
+      metrics: [{ name: "screenPageViews" }],
+      orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+      limit: 5,
+    }),
+    runReport(accessToken, propertyId, {
+      dateRanges,
+      dimensions: [{ name: "sessionDefaultChannelGroup" }],
+      metrics: [{ name: "sessions" }],
+      orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+      limit: 5,
+    }),
+  ]);
+
+  const m = totalsRows[0]?.metricValues ?? [];
+  const totals: GaTotals = {
+    sessions: num(m[0]?.value),
+    totalUsers: num(m[1]?.value),
+    screenPageViews: num(m[2]?.value),
+    averageSessionDuration: num(m[3]?.value),
+  };
+
+  return {
+    date: "yesterday",
+    totals,
+    topPages: toRows(topPages),
+    topChannels: toRows(topChannels),
+  };
+}

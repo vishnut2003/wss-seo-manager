@@ -129,3 +129,62 @@ export async function getConnectorData(
 
   return { range, totals, topQueries, topPages };
 }
+
+export interface DailySnapshot {
+  /** The actual day summarized (YYYY-MM-DD), or null if no recent data. */
+  date: string | null;
+  totals: SearchAnalyticsTotals;
+  topQueries: SearchAnalyticsRow[];
+}
+
+/**
+ * Latest complete day of GSC data. Because GSC lags ~2-3 days, we look back a
+ * few days grouped by date, pick the most recent day that has data, and return
+ * that day's totals + top queries.
+ */
+export async function getDailySnapshot(
+  accessToken: string,
+  siteUrl: string
+): Promise<DailySnapshot> {
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const end = new Date(Date.now() - 86_400_000);
+  const start = new Date(Date.now() - 6 * 86_400_000);
+
+  const byDate = await querySearchAnalytics(accessToken, siteUrl, {
+    startDate: fmt(start),
+    endDate: fmt(end),
+    dimensions: ["date"],
+    rowLimit: 10,
+  });
+
+  if (byDate.length === 0) {
+    return {
+      date: null,
+      totals: { clicks: 0, impressions: 0, ctr: 0, position: 0 },
+      topQueries: [],
+    };
+  }
+
+  const latest = byDate.reduce((a, b) =>
+    (a.keys?.[0] ?? "") > (b.keys?.[0] ?? "") ? a : b
+  );
+  const date = latest.keys?.[0] ?? null;
+
+  const totals: SearchAnalyticsTotals = {
+    clicks: latest.clicks,
+    impressions: latest.impressions,
+    ctr: latest.ctr,
+    position: latest.position,
+  };
+
+  const topQueries = date
+    ? await querySearchAnalytics(accessToken, siteUrl, {
+        startDate: date,
+        endDate: date,
+        dimensions: ["query"],
+        rowLimit: 5,
+      })
+    : [];
+
+  return { date, totals, topQueries };
+}
