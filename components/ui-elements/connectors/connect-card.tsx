@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -7,11 +7,17 @@ import { Button } from "@/components/ui/button";
  * Google's consent screen.
  */
 export function ConnectCard({
-  projectId,
+  connectHref,
+  label,
+  description,
+  icon: Icon,
   canManage,
   reconnect = false,
 }: {
-  projectId: string;
+  connectHref: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
   canManage: boolean;
   reconnect?: boolean;
 }) {
@@ -22,18 +28,16 @@ export function ConnectCard({
 
       <div className="relative mx-auto flex max-w-md flex-col items-center gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary to-purple-900 text-white shadow-lg shadow-primary/30">
-          <Search className="size-7" />
+          <Icon className="size-7" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-foreground">
-            {reconnect
-              ? "Reconnect Google Search Console"
-              : "Connect Google Search Console"}
+            {reconnect ? `Reconnect ${label}` : `Connect ${label}`}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {reconnect
-              ? "Your Google authorization expired or was revoked. Reconnect to keep syncing search performance data."
-              : "Authorize a Google account to pull clicks, impressions, and ranking data for this project."}
+              ? "Your Google authorization expired or was revoked. Reconnect to keep syncing data."
+              : description}
           </p>
         </div>
 
@@ -42,11 +46,9 @@ export function ConnectCard({
             asChild
             className="h-11 gap-2 rounded-xl border-0 bg-linear-to-r from-primary to-purple-900 px-6 text-sm font-semibold text-white"
           >
-            <a
-              href={`/api/connectors/google-search-console/connect?projectId=${projectId}`}
-            >
-              <Search className="size-4" />
-              {reconnect ? "Reconnect" : "Connect Google Search Console"}
+            <a href={connectHref}>
+              <Icon className="size-4" />
+              {reconnect ? "Reconnect" : `Connect ${label}`}
             </a>
           </Button>
         ) : (

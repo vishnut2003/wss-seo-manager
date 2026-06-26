@@ -11,11 +11,19 @@ const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo";
 
-/** Read-only Search Console access plus identity to record the account email. */
-export const GOOGLE_SCOPES = [
+/** Identity scopes appended to every connector so we can record the account. */
+const IDENTITY_SCOPES = ["openid", "email"];
+
+/** Read-only Search Console access plus identity. */
+export const SEARCH_CONSOLE_SCOPES = [
   "https://www.googleapis.com/auth/webmasters.readonly",
-  "openid",
-  "email",
+  ...IDENTITY_SCOPES,
+].join(" ");
+
+/** Read-only Google Analytics (GA4) access plus identity. */
+export const ANALYTICS_SCOPES = [
+  "https://www.googleapis.com/auth/analytics.readonly",
+  ...IDENTITY_SCOPES,
 ].join(" ");
 
 /** Refresh tokens slightly before expiry to avoid edge-of-window failures. */
@@ -43,16 +51,18 @@ function getClientCredentials(): { clientId: string; clientSecret: string } {
 export function buildAuthUrl({
   state,
   redirectUri,
+  scope,
 }: {
   state: string;
   redirectUri: string;
+  scope: string;
 }): string {
   const { clientId } = getClientCredentials();
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: GOOGLE_SCOPES,
+    scope,
     access_type: "offline",
     prompt: "consent",
     include_granted_scopes: "true",

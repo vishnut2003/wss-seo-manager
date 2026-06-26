@@ -12,17 +12,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { SearchAnalyticsRow } from "@/lib/google/search-console";
-import { formatCtr, formatNumber, formatPosition } from "./format";
 
-export function SearchAnalyticsTable({
+export interface AnalyticsTableRow {
+  /** First-column label (the dimension value, e.g. a query or page path). */
+  dimension: string;
+  /** Pre-formatted metric cells, aligned with `columns` order. */
+  cells: string[];
+}
+
+/**
+ * Generic right-aligned metrics table. `columns` are the numeric metric headers;
+ * `dimensionLabel` is the first-column header. Cells arrive pre-formatted.
+ */
+export function AnalyticsTable({
   title,
   dimensionLabel,
+  columns,
   rows,
 }: {
   title: string;
   dimensionLabel: string;
-  rows: SearchAnalyticsRow[];
+  columns: string[];
+  rows: AnalyticsTableRow[];
 }) {
   return (
     <Card className="border-purple-100 shadow-xl shadow-purple-900/5">
@@ -39,30 +50,24 @@ export function SearchAnalyticsTable({
             <TableHeader>
               <TableRow>
                 <TableHead>{dimensionLabel}</TableHead>
-                <TableHead className="text-right">Clicks</TableHead>
-                <TableHead className="text-right">Impressions</TableHead>
-                <TableHead className="text-right">CTR</TableHead>
-                <TableHead className="text-right">Position</TableHead>
+                {columns.map((col) => (
+                  <TableHead key={col} className="text-right">
+                    {col}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((row) => (
-                <TableRow key={row.keys?.[0] ?? ""}>
+                <TableRow key={row.dimension}>
                   <TableCell className="max-w-xs truncate font-medium text-foreground">
-                    {row.keys?.[0] ?? "—"}
+                    {row.dimension || "—"}
                   </TableCell>
-                  <TableCell className="text-right">
-                    {formatNumber(row.clicks)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatNumber(row.impressions)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCtr(row.ctr)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatPosition(row.position)}
-                  </TableCell>
+                  {row.cells.map((cell, i) => (
+                    <TableCell key={columns[i] ?? i} className="text-right">
+                      {cell}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))}
             </TableBody>

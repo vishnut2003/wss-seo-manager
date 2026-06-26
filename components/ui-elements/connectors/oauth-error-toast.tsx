@@ -11,10 +11,10 @@ import { oauthErrorMessage } from "./format";
  */
 export function OAuthErrorToast({
   error,
-  projectId,
+  basePath,
 }: {
   error: string;
-  projectId: string;
+  basePath: string;
 }) {
   const router = useRouter();
   const shown = useRef(false);
@@ -23,10 +23,8 @@ export function OAuthErrorToast({
     if (shown.current) return;
     shown.current = true;
     toast.error(oauthErrorMessage(error));
-    router.replace(
-      `/projects/${projectId}/connectors/google-search-console`
-    );
-  }, [error, projectId, router]);
+    router.replace(basePath);
+  }, [error, basePath, router]);
 
   return null;
 }

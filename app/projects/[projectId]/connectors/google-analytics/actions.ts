@@ -9,19 +9,19 @@ import type { ConnectorProvider } from "@/lib/google/connector-flow";
 
 export type ActionResult = { ok: boolean; error?: string };
 
-const PROVIDER: ConnectorProvider = "google-search-console";
+const PROVIDER: ConnectorProvider = "google-analytics";
 
 function isManager(role?: string): boolean {
   return role === "super_admin" || role === "admin";
 }
 
 function revalidate(projectId: string): void {
-  revalidatePath(`/projects/${projectId}/connectors/google-search-console`);
+  revalidatePath(`/projects/${projectId}/connectors/google-analytics`);
 }
 
 export async function selectProperty(
   projectId: string,
-  siteUrl: string
+  propertyId: string
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return { ok: false, error: "Not authenticated" };
@@ -31,13 +31,13 @@ export async function selectProperty(
   if (!isValidObjectId(projectId)) {
     return { ok: false, error: "Invalid project" };
   }
-  if (!siteUrl) return { ok: false, error: "Select a property" };
+  if (!propertyId) return { ok: false, error: "Select a property" };
 
   try {
     await connectDB();
     const updated = await Connection.findOneAndUpdate(
       { projectId, provider: PROVIDER },
-      { siteUrl }
+      { propertyId }
     );
     if (!updated) return { ok: false, error: "No connection found" };
   } catch {
@@ -48,7 +48,7 @@ export async function selectProperty(
   return { ok: true };
 }
 
-export async function disconnectGsc(projectId: string): Promise<ActionResult> {
+export async function disconnectGa(projectId: string): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return { ok: false, error: "Not authenticated" };
   if (!isManager(session.user.role)) {

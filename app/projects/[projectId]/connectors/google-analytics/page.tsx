@@ -1,12 +1,6 @@
 import { notFound } from "next/navigation";
 import { isValidObjectId } from "mongoose";
-import {
-  Search,
-  MousePointerClick,
-  Eye,
-  Percent,
-  TrendingUp,
-} from "lucide-react";
+import { BarChart3, Activity, Users, Eye, Clock } from "lucide-react";
 import { auth } from "@/auth";
 import { connectDB } from "@/configs/db";
 import Project from "@/models/Project";
@@ -19,10 +13,10 @@ import {
 import { GoogleReconnectError, getValidAccessToken } from "@/lib/google/oauth";
 import {
   getConnectorData,
-  listSites,
-  type ConnectorData,
-  type GscSite,
-} from "@/lib/google/search-console";
+  listProperties,
+  type GaConnectorData,
+  type GaProperty,
+} from "@/lib/google/analytics";
 import {
   Card,
   CardContent,
@@ -37,14 +31,13 @@ import { MetricCards } from "@/components/ui-elements/connectors/metric-cards";
 import { AnalyticsTable } from "@/components/ui-elements/connectors/analytics-table";
 import { OAuthErrorToast } from "@/components/ui-elements/connectors/oauth-error-toast";
 import {
-  formatCtr,
+  formatDuration,
   formatNumber,
-  formatPosition,
 } from "@/components/ui-elements/connectors/format";
-import { disconnectGsc, selectProperty } from "./actions";
+import { disconnectGa, selectProperty } from "./actions";
 
-const PROVIDER: ConnectorProvider = "google-search-console";
-const LABEL = "Google Search Console";
+const PROVIDER: ConnectorProvider = "google-analytics";
+const LABEL = "Google Analytics";
 type ConnectionLean = IConnection & { _id: unknown };
 
 function PageHeader() {
@@ -54,14 +47,14 @@ function PageHeader() {
         {LABEL}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Connect a Google account to sync clicks, impressions, and ranking data
-        for this project.
+        Connect a Google account to sync sessions, users, and traffic data for
+        this project.
       </p>
     </div>
   );
 }
 
-export default async function GscConnectorPage({
+export default async function GaConnectorPage({
   params,
   searchParams,
 }: {
@@ -108,8 +101,8 @@ export default async function GscConnectorPage({
         <ConnectCard
           connectHref={connectHref(projectId, PROVIDER)}
           label={LABEL}
-          description="Authorize a Google account to pull clicks, impressions, and ranking data for this project."
-          icon={Search}
+          description="Authorize a Google account to pull sessions, users, and traffic data for this project."
+          icon={BarChart3}
           canManage={canManage}
         />
       </div>
@@ -117,18 +110,18 @@ export default async function GscConnectorPage({
   }
 
   type FetchState =
-    | { kind: "ok"; sites: GscSite[]; data: ConnectorData | null }
+    | { kind: "ok"; properties: GaProperty[]; data: GaConnectorData | null }
     | { kind: "reconnect" }
     | { kind: "error" };
 
   let state: FetchState;
   try {
     const accessToken = await getValidAccessToken(connection);
-    const sites = await listSites(accessToken);
-    const data = connection.siteUrl
-      ? await getConnectorData(accessToken, connection.siteUrl)
+    const properties = await listProperties(accessToken);
+    const data = connection.propertyId
+      ? await getConnectorData(accessToken, connection.propertyId)
       : null;
-    state = { kind: "ok", sites, data };
+    state = { kind: "ok", properties, data };
   } catch (err) {
     state =
       err instanceof GoogleReconnectError
@@ -145,7 +138,7 @@ export default async function GscConnectorPage({
           connectHref={connectHref(projectId, PROVIDER)}
           label={LABEL}
           description=""
-          icon={Search}
+          icon={BarChart3}
           canManage={canManage}
           reconnect
         />
@@ -163,12 +156,12 @@ export default async function GscConnectorPage({
           accountEmail={connection.accountEmail}
           providerLabel={LABEL}
           canManage={canManage}
-          onDisconnect={disconnectGsc}
+          onDisconnect={disconnectGa}
         />
         <Card className="border-destructive/30 shadow-xl shadow-destructive/5">
           <CardHeader>
             <CardTitle className="text-destructive">
-              Couldn&apos;t load Search Console data
+              Couldn&apos;t load Analytics data
             </CardTitle>
             <CardDescription>
               Something went wrong talking to Google. Please refresh, or
@@ -180,7 +173,7 @@ export default async function GscConnectorPage({
     );
   }
 
-  const { sites, data } = state;
+  const { properties, data } = state;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
@@ -192,25 +185,28 @@ export default async function GscConnectorPage({
         accountEmail={connection.accountEmail}
         providerLabel={LABEL}
         canManage={canManage}
-        onDisconnect={disconnectGsc}
+        onDisconnect={disconnectGa}
       />
 
       <Card className="border-purple-100 shadow-xl shadow-purple-900/5">
         <CardHeader>
           <CardTitle className="text-base">Property</CardTitle>
           <CardDescription>
-            Choose which Search Console property maps to this project.
+            Choose which GA4 property maps to this project.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <PropertySelector
             projectId={projectId}
-            items={sites.map((s) => ({ value: s.siteUrl, label: s.siteUrl }))}
-            currentValue={connection.siteUrl}
+            items={properties.map((p) => ({
+              value: p.propertyId,
+              label: `${p.displayName} (${p.propertyId.replace("properties/", "")})`,
+            }))}
+            currentValue={connection.propertyId}
             canManage={canManage}
             onSelect={selectProperty}
             label="Property"
-            placeholder="Select a Search Console property"
+            placeholder="Select a GA4 property"
             emptyPlaceholder="No properties available for this account"
           />
         </CardContent>
@@ -219,57 +215,47 @@ export default async function GscConnectorPage({
       {data && (
         <>
           <MetricCards
-            rangeLabel={`${data.range.startDate} – ${data.range.endDate}`}
+            rangeLabel={data.rangeLabel}
             metrics={[
               {
-                icon: MousePointerClick,
-                label: "Clicks",
-                value: formatNumber(data.totals.clicks),
+                icon: Activity,
+                label: "Sessions",
+                value: formatNumber(data.totals.sessions),
+              },
+              {
+                icon: Users,
+                label: "Total users",
+                value: formatNumber(data.totals.totalUsers),
               },
               {
                 icon: Eye,
-                label: "Impressions",
-                value: formatNumber(data.totals.impressions),
+                label: "Page views",
+                value: formatNumber(data.totals.screenPageViews),
               },
               {
-                icon: Percent,
-                label: "Avg. CTR",
-                value: formatCtr(data.totals.ctr),
-              },
-              {
-                icon: TrendingUp,
-                label: "Avg. position",
-                value: formatPosition(data.totals.position),
+                icon: Clock,
+                label: "Avg. session",
+                value: formatDuration(data.totals.averageSessionDuration),
               },
             ]}
           />
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <AnalyticsTable
-              title="Top queries"
-              dimensionLabel="Query"
-              columns={["Clicks", "Impressions", "CTR", "Position"]}
-              rows={data.topQueries.map((r) => ({
-                dimension: r.keys?.[0] ?? "",
-                cells: [
-                  formatNumber(r.clicks),
-                  formatNumber(r.impressions),
-                  formatCtr(r.ctr),
-                  formatPosition(r.position),
-                ],
+              title="Top pages"
+              dimensionLabel="Page"
+              columns={["Views"]}
+              rows={data.topPages.map((r) => ({
+                dimension: r.dimension,
+                cells: [formatNumber(r.metric)],
               }))}
             />
             <AnalyticsTable
-              title="Top pages"
-              dimensionLabel="Page"
-              columns={["Clicks", "Impressions", "CTR", "Position"]}
-              rows={data.topPages.map((r) => ({
-                dimension: r.keys?.[0] ?? "",
-                cells: [
-                  formatNumber(r.clicks),
-                  formatNumber(r.impressions),
-                  formatCtr(r.ctr),
-                  formatPosition(r.position),
-                ],
+              title="Top channels"
+              dimensionLabel="Channel"
+              columns={["Sessions"]}
+              rows={data.topChannels.map((r) => ({
+                dimension: r.dimension,
+                cells: [formatNumber(r.metric)],
               }))}
             />
           </div>

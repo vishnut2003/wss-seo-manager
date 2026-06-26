@@ -1,3 +1,3 @@
 import { createConnectHandler } from "@/lib/google/connector-handlers";
 
-export const GET = createConnectHandler("google-search-console");
+export const GET = createConnectHandler("google-analytics");

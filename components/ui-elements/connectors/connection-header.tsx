@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Unplug, CircleCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,24 +16,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { disconnectGsc } from "../actions";
+import type { DisconnectAction } from "./types";
 
 export function ConnectionHeader({
   projectId,
   accountEmail,
+  providerLabel,
   canManage,
+  onDisconnect,
 }: {
   projectId: string;
   accountEmail: string;
+  providerLabel: string;
   canManage: boolean;
+  onDisconnect: DisconnectAction;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
-  async function onDisconnect() {
+  async function disconnect() {
     setPending(true);
-    const res = await disconnectGsc(projectId);
+    const res = await onDisconnect(projectId);
 
     if (!res.ok) {
       setPending(false);
@@ -44,7 +45,7 @@ export function ConnectionHeader({
       return;
     }
 
-    toast.success("Disconnected Google Search Console");
+    toast.success(`Disconnected ${providerLabel}`);
     setOpen(false);
     router.refresh();
   }
@@ -80,7 +81,7 @@ export function ConnectionHeader({
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disconnect Google Search Console?</AlertDialogTitle>
+            <AlertDialogTitle>Disconnect {providerLabel}?</AlertDialogTitle>
             <AlertDialogDescription>
               This removes the stored Google authorization for this project. You
               can reconnect at any time.
@@ -93,7 +94,7 @@ export function ConnectionHeader({
               disabled={pending}
               onClick={(e) => {
                 e.preventDefault();
-                void onDisconnect();
+                void disconnect();
               }}
             >
               {pending && <Loader2 className="size-4 animate-spin" />}
