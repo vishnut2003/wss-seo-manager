@@ -4,6 +4,8 @@ import {
   BarChart3,
   TrendingUp,
   Settings,
+  CalendarDays,
+  CalendarRange,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -46,6 +48,21 @@ export function buildNavSections(projectId: string): NavSection[] {
           title: "Semrush",
           href: `${base}/connectors/semrush`,
           icon: TrendingUp,
+        },
+      ],
+    },
+    {
+      label: "Notification",
+      items: [
+        {
+          title: "Daily Summary",
+          href: `${base}/notifications/daily-summary`,
+          icon: CalendarDays,
+        },
+        {
+          title: "Monthly Summary",
+          href: `${base}/notifications/monthly-summary`,
+          icon: CalendarRange,
         },
       ],
     },
