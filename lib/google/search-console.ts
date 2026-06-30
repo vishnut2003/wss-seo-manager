@@ -188,3 +188,66 @@ export async function getDailySnapshot(
 
   return { date, totals, topQueries };
 }
+
+export interface MonthlySnapshot {
+  /** Totals for the reporting month. */
+  totals: SearchAnalyticsTotals;
+  /** Totals for the prior month, for month-over-month comparison. */
+  prevTotals: SearchAnalyticsTotals;
+  topQueries: SearchAnalyticsRow[];
+  range: DateRange;
+}
+
+const EMPTY_TOTALS: SearchAnalyticsTotals = {
+  clicks: 0,
+  impressions: 0,
+  ctr: 0,
+  position: 0,
+};
+
+function toTotals(row?: SearchAnalyticsRow): SearchAnalyticsTotals {
+  return row
+    ? {
+        clicks: row.clicks,
+        impressions: row.impressions,
+        ctr: row.ctr,
+        position: row.position,
+      }
+    : EMPTY_TOTALS;
+}
+
+/**
+ * GSC totals + top queries for a full calendar month, plus the prior month's
+ * totals for month-over-month comparison. Both ranges are passed in explicitly
+ * so GSC and GA4 cover the same period.
+ */
+export async function getMonthlySnapshot(
+  accessToken: string,
+  siteUrl: string,
+  range: DateRange,
+  prevRange: DateRange
+): Promise<MonthlySnapshot> {
+  const [totalsRows, prevTotalsRows, topQueries] = await Promise.all([
+    querySearchAnalytics(accessToken, siteUrl, {
+      startDate: range.startDate,
+      endDate: range.endDate,
+    }),
+    querySearchAnalytics(accessToken, siteUrl, {
+      startDate: prevRange.startDate,
+      endDate: prevRange.endDate,
+    }),
+    querySearchAnalytics(accessToken, siteUrl, {
+      startDate: range.startDate,
+      endDate: range.endDate,
+      dimensions: ["query"],
+      rowLimit: 5,
+    }),
+  ]);
+
+  return {
+    totals: toTotals(totalsRows[0]),
+    prevTotals: toTotals(prevTotalsRows[0]),
+    topQueries,
+    range,
+  };
+}

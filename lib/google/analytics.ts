@@ -213,3 +213,75 @@ export async function getDailySnapshot(
     topChannels: toRows(topChannels),
   };
 }
+
+export interface GaDateRange {
+  startDate: string;
+  endDate: string;
+}
+
+export interface GaMonthlySnapshot {
+  totals: GaTotals;
+  /** Prior month's totals, for month-over-month comparison. */
+  prevTotals: GaTotals;
+  topPages: GaRow[];
+  topChannels: GaRow[];
+  range: GaDateRange;
+}
+
+function rowToTotals(row?: ReportRow): GaTotals {
+  const m = row?.metricValues ?? [];
+  return {
+    sessions: num(m[0]?.value),
+    totalUsers: num(m[1]?.value),
+    screenPageViews: num(m[2]?.value),
+    averageSessionDuration: num(m[3]?.value),
+  };
+}
+
+/**
+ * GA4 totals + top pages/channels for a full calendar month, plus the prior
+ * month's totals for month-over-month comparison. The totals report passes both
+ * ranges so GA4 returns one row per range (current first, previous second).
+ */
+export async function getMonthlySnapshot(
+  accessToken: string,
+  propertyId: string,
+  range: GaDateRange,
+  prevRange: GaDateRange
+): Promise<GaMonthlySnapshot> {
+  const dateRanges = [range];
+
+  const [totalsRows, topPages, topChannels] = await Promise.all([
+    runReport(accessToken, propertyId, {
+      dateRanges: [range, prevRange],
+      metrics: [
+        { name: "sessions" },
+        { name: "totalUsers" },
+        { name: "screenPageViews" },
+        { name: "averageSessionDuration" },
+      ],
+    }),
+    runReport(accessToken, propertyId, {
+      dateRanges,
+      dimensions: [{ name: "pagePath" }],
+      metrics: [{ name: "screenPageViews" }],
+      orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+      limit: 5,
+    }),
+    runReport(accessToken, propertyId, {
+      dateRanges,
+      dimensions: [{ name: "sessionDefaultChannelGroup" }],
+      metrics: [{ name: "sessions" }],
+      orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+      limit: 5,
+    }),
+  ]);
+
+  return {
+    totals: rowToTotals(totalsRows[0]),
+    prevTotals: rowToTotals(totalsRows[1]),
+    topPages: toRows(topPages),
+    topChannels: toRows(topChannels),
+    range,
+  };
+}
