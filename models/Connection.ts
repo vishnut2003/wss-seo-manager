@@ -5,11 +5,15 @@ import { Schema, model, models, type Model } from "mongoose";
  * `provider` so future connectors (Google Analytics, Semrush, …) can reuse
  * the same collection. Tokens are stored encrypted at rest (see `lib/crypto`).
  */
-export type ConnectionProvider = "google-search-console" | "google-analytics";
+export type ConnectionProvider =
+  | "google-search-console"
+  | "google-analytics"
+  | "google-ads";
 
 export const CONNECTION_PROVIDERS: ConnectionProvider[] = [
   "google-search-console",
   "google-analytics",
+  "google-ads",
 ];
 
 export interface IConnection {
@@ -27,6 +31,12 @@ export interface IConnection {
   siteUrl?: string;
   /** Selected GA4 property, e.g. `properties/123456789`. */
   propertyId?: string;
+  /** Selected Google Ads customer, digits only, e.g. `1234567890`. */
+  customerId?: string;
+  /** The manager (MCC) account the selection is accessed through, if any. */
+  loginCustomerId?: string;
+  /** Account currency for formatting cost, e.g. `USD`. */
+  currencyCode?: string;
   /** Email of the user who created the connection. */
   connectedBy: string;
   createdAt: Date;
@@ -50,6 +60,9 @@ const connectionSchema = new Schema<IConnection, ConnectionModel>(
     scope: { type: String, required: true },
     siteUrl: { type: String },
     propertyId: { type: String },
+    customerId: { type: String },
+    loginCustomerId: { type: String },
+    currencyCode: { type: String },
     connectedBy: { type: String, required: true },
   },
   { timestamps: true }

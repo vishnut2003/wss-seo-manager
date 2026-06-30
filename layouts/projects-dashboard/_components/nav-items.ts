@@ -45,8 +45,8 @@ export function buildNavSections(projectId: string): NavSection[] {
           icon: BarChart3,
         },
         {
-          title: "Semrush",
-          href: `${base}/connectors/semrush`,
+          title: "Google Ads",
+          href: `${base}/connectors/google-ads`,
           icon: TrendingUp,
         },
       ],

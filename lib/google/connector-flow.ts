@@ -1,4 +1,8 @@
-import { ANALYTICS_SCOPES, SEARCH_CONSOLE_SCOPES } from "@/lib/google/oauth";
+import {
+  ANALYTICS_SCOPES,
+  GOOGLE_ADS_SCOPES,
+  SEARCH_CONSOLE_SCOPES,
+} from "@/lib/google/oauth";
 
 /**
  * Shared, provider-parameterized helpers for the Google OAuth connector flows.
@@ -6,11 +10,15 @@ import { ANALYTICS_SCOPES, SEARCH_CONSOLE_SCOPES } from "@/lib/google/oauth";
  * `/api/connectors/<slug>`) and the DB `provider` value.
  */
 
-export type ConnectorProvider = "google-search-console" | "google-analytics";
+export type ConnectorProvider =
+  | "google-search-console"
+  | "google-analytics"
+  | "google-ads";
 
 export const CONNECTOR_CONFIG: Record<ConnectorProvider, { scope: string }> = {
   "google-search-console": { scope: SEARCH_CONSOLE_SCOPES },
   "google-analytics": { scope: ANALYTICS_SCOPES },
+  "google-ads": { scope: GOOGLE_ADS_SCOPES },
 };
 
 /** Per-provider httpOnly CSRF cookie so concurrent flows don't collide. */

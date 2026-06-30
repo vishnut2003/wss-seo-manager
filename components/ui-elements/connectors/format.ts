@@ -16,6 +16,21 @@ export function formatPosition(position: number): string {
   return position.toFixed(1);
 }
 
+/** Money in whole currency units, e.g. 12.5 + "USD" → "$12.50". */
+export function formatCurrency(value: number, currencyCode?: string): string {
+  if (currencyCode) {
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: currencyCode,
+      }).format(value);
+    } catch {
+      // Fall through on an unknown/invalid currency code.
+    }
+  }
+  return `${value.toFixed(2)}${currencyCode ? ` ${currencyCode}` : ""}`;
+}
+
 /** Seconds → m:ss (e.g. 95 → "1:35"). */
 export function formatDuration(seconds: number): string {
   const total = Math.round(seconds);
