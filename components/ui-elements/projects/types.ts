@@ -13,4 +13,5 @@ export interface ProjectView {
     backlinks: number;
   };
   updatedAt: string;
+  createdAt: string;
 }

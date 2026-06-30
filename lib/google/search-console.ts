@@ -251,3 +251,70 @@ export async function getMonthlySnapshot(
     range,
   };
 }
+
+/** Totals-only for an arbitrary range (used for prior-period comparisons). */
+export async function getTotals(
+  accessToken: string,
+  siteUrl: string,
+  range: DateRange
+): Promise<SearchAnalyticsTotals> {
+  const rows = await querySearchAnalytics(accessToken, siteUrl, {
+    startDate: range.startDate,
+    endDate: range.endDate,
+  });
+  return toTotals(rows[0]);
+}
+
+export interface TrendMonth {
+  label: string;
+  clicks: number;
+  impressions: number;
+}
+
+/**
+ * Clicks + impressions bucketed by month for the last `months` months. Queries
+ * GSC by date (which lags ~3 days) and aggregates client-side.
+ */
+export async function getMonthlyTrend(
+  accessToken: string,
+  siteUrl: string,
+  months = 6
+): Promise<TrendMonth[]> {
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const now = new Date();
+  const start = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1)
+  );
+  const end = new Date(Date.now() - 3 * 86_400_000);
+
+  const rows = await querySearchAnalytics(accessToken, siteUrl, {
+    startDate: fmt(start),
+    endDate: fmt(end),
+    dimensions: ["date"],
+    rowLimit: 1000,
+  });
+
+  const byMonth = new Map<string, { clicks: number; impressions: number }>();
+  for (const r of rows) {
+    const date = r.keys?.[0];
+    if (!date) continue;
+    const key = date.slice(0, 7); // YYYY-MM
+    const acc = byMonth.get(key) ?? { clicks: 0, impressions: 0 };
+    acc.clicks += r.clicks;
+    acc.impressions += r.impressions;
+    byMonth.set(key, acc);
+  }
+
+  const series: TrendMonth[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    const acc = byMonth.get(key) ?? { clicks: 0, impressions: 0 };
+    series.push({
+      label: d.toLocaleString("en-US", { month: "short", timeZone: "UTC" }),
+      clicks: acc.clicks,
+      impressions: acc.impressions,
+    });
+  }
+  return series;
+}

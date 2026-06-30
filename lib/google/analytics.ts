@@ -285,3 +285,62 @@ export async function getMonthlySnapshot(
     range,
   };
 }
+
+/** Totals-only for an arbitrary range (used for prior-period comparisons). */
+export async function getTotals(
+  accessToken: string,
+  propertyId: string,
+  dateRange: GaDateRange
+): Promise<GaTotals> {
+  const rows = await runReport(accessToken, propertyId, {
+    dateRanges: [dateRange],
+    metrics: [
+      { name: "sessions" },
+      { name: "totalUsers" },
+      { name: "screenPageViews" },
+      { name: "averageSessionDuration" },
+    ],
+  });
+  return rowToTotals(rows[0]);
+}
+
+export interface GaTrendMonth {
+  label: string;
+  sessions: number;
+}
+
+/** Sessions bucketed by month for the last `months` months (GA4 `yearMonth`). */
+export async function getMonthlyTrend(
+  accessToken: string,
+  propertyId: string,
+  months = 6
+): Promise<GaTrendMonth[]> {
+  const now = new Date();
+  const start = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1)
+  );
+
+  const rows = await runReport(accessToken, propertyId, {
+    dateRanges: [{ startDate: start.toISOString().slice(0, 10), endDate: "today" }],
+    dimensions: [{ name: "yearMonth" }],
+    metrics: [{ name: "sessions" }],
+  });
+
+  const byMonth = new Map<string, number>();
+  for (const r of rows) {
+    const ym = r.dimensionValues?.[0]?.value; // "YYYYMM"
+    if (!ym) continue;
+    byMonth.set(ym, num(r.metricValues?.[0]?.value));
+  }
+
+  const series: GaTrendMonth[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const key = `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    series.push({
+      label: d.toLocaleString("en-US", { month: "short", timeZone: "UTC" }),
+      sessions: byMonth.get(key) ?? 0,
+    });
+  }
+  return series;
+}
