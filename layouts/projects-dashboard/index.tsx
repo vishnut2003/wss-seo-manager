@@ -2,6 +2,7 @@
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AssistantLauncher } from "@/components/ui-elements/assistant/assistant-launcher";
 import { AppSidebar } from "./_components/app-sidebar";
 import { DashboardHeader } from "./_components/dashboard-header";
 import type { DashboardUser } from "./_components/nav-items";
@@ -30,6 +31,11 @@ export default function ProjectsDashboardLayout({
           <DashboardHeader user={user} currentLabel={currentLabel} />
           <div className="flex flex-1 flex-col">{children}</div>
         </SidebarInset>
+        <AssistantLauncher
+          projectId={projectId}
+          projectName={currentLabel}
+          role={user.role}
+        />
       </SidebarProvider>
     </TooltipProvider>
   );
