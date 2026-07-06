@@ -11,23 +11,14 @@ import {
 } from "@/components/ui/sheet";
 import { AssistantPanel } from "./assistant-panel";
 
-/** Managers only — mirrors the connector/notification permission model. */
-function isManager(role?: string): boolean {
-  return role === "super_admin" || role === "admin";
-}
-
 export function AssistantLauncher({
   projectId,
   projectName,
-  role,
 }: {
   projectId: string;
   projectName?: string;
-  role?: string;
 }) {
   const [open, setOpen] = useState(false);
-
-  if (!isManager(role)) return null;
 
   const name = projectName ?? "this project";
 

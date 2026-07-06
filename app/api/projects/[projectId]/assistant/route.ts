@@ -13,16 +13,13 @@ import { buildSystemPrompt, streamChat, toolLabel } from "@/lib/assistant/chat";
  *   running the read-only connector tool loop. Persists the thread.
  * - GET: load a conversation (or the user's most recent one) to rehydrate the
  *   panel.
- * Manager-only (super_admin / admin), mirroring the connector handlers.
+ * Open to every signed-in user; threads are scoped per user (userId) and the
+ * connector tool loop is read-only.
  */
 
 export const maxDuration = 60;
 
 const MAX_MESSAGE_LEN = 2000;
-
-function isManager(role?: string): boolean {
-  return role === "super_admin" || role === "admin";
-}
 
 /** Maps stored turns to Anthropic message params (plain text content). */
 function toApiMessages(
@@ -37,8 +34,6 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
-  if (!isManager(session.user.role))
-    return new NextResponse("Forbidden", { status: 403 });
 
   const { projectId } = await params;
   if (!isValidObjectId(projectId))
@@ -147,8 +142,6 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
-  if (!isManager(session.user.role))
-    return new NextResponse("Forbidden", { status: 403 });
 
   const { projectId } = await params;
   if (!isValidObjectId(projectId))

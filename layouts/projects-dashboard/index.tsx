@@ -31,11 +31,7 @@ export default function ProjectsDashboardLayout({
           <DashboardHeader user={user} currentLabel={currentLabel} />
           <div className="flex flex-1 flex-col">{children}</div>
         </SidebarInset>
-        <AssistantLauncher
-          projectId={projectId}
-          projectName={currentLabel}
-          role={user.role}
-        />
+        <AssistantLauncher projectId={projectId} projectName={currentLabel} />
       </SidebarProvider>
     </TooltipProvider>
   );
