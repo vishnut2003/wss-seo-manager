@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { LogOut } from "lucide-react";
+import { LogOut, Users } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
@@ -15,7 +16,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function ProjectsTopBar({ email }: { email?: string | null }) {
+export function ProjectsTopBar({
+  email,
+  isSuperAdmin = false,
+}: {
+  email?: string | null;
+  isSuperAdmin?: boolean;
+}) {
   const initial = (email?.[0] ?? "U").toUpperCase();
 
   return (
@@ -46,6 +53,14 @@ export function ProjectsTopBar({ email }: { email?: string | null }) {
               <span className="truncate text-sm font-medium">{email}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {isSuperAdmin && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin">
+                  <Users className="size-4" />
+                  Manage Users
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               variant="destructive"
               onSelect={() => signOut({ redirectTo: "/" })}

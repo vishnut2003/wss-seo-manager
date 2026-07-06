@@ -117,7 +117,10 @@ export default async function ProjectsPage() {
 
   return (
     <div className="flex min-h-full flex-col bg-background">
-      <ProjectsTopBar email={session?.user?.email} />
+      <ProjectsTopBar
+        email={session?.user?.email}
+        isSuperAdmin={role === "super_admin"}
+      />
 
       <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
         <div className="space-y-6">

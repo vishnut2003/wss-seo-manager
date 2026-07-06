@@ -17,8 +17,18 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const isProtected = nextUrl.pathname.startsWith("/projects");
 
+      // /admin is super-admin only. Non-super-admins who are logged in get
+      // sent back to their dashboard; visitors get the default sign-in redirect.
+      if (nextUrl.pathname.startsWith("/admin")) {
+        if (!isLoggedIn) return false;
+        if (auth.user.role !== "super_admin") {
+          return Response.redirect(new URL("/projects", nextUrl));
+        }
+        return true;
+      }
+
+      const isProtected = nextUrl.pathname.startsWith("/projects");
       if (isProtected) return isLoggedIn;
       return true;
     },
