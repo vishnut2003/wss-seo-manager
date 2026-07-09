@@ -9,6 +9,7 @@ import {
   getSnapshot as windsorSnapshot,
   getSourceDef as windsorSourceDef,
   resolveFields as windsorResolveFields,
+  stripSourcePrefix as windsorStripPrefix,
   toNumber as windsorToNumber,
   formatWindsorValue,
 } from "@/lib/windsor/client";
@@ -129,7 +130,10 @@ export async function runMonthlySummary(
         for (const selection of selections) {
           const def = windsorSourceDef(selection.source);
           if (!def) continue;
-          const accountLabel = selection.accountName ?? selection.accountId;
+          const accountLabel = windsorStripPrefix(
+            selection.source,
+            selection.accountName ?? selection.accountId
+          );
           const fields = windsorResolveFields(def, selection.fields);
           const snap = await windsorSnapshot(
             def.slug,

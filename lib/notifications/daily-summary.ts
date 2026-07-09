@@ -9,6 +9,7 @@ import {
   fetchData as windsorFetchData,
   getSourceDef as windsorSourceDef,
   resolveFields as windsorResolveFields,
+  stripSourcePrefix as windsorStripPrefix,
   formatWindsorValue,
 } from "@/lib/windsor/client";
 import { summarize } from "@/lib/anthropic";
@@ -94,7 +95,10 @@ export async function runDailySummary(
         for (const selection of selections) {
           const def = windsorSourceDef(selection.source);
           if (!def) continue;
-          const accountLabel = selection.accountName ?? selection.accountId;
+          const accountLabel = windsorStripPrefix(
+            selection.source,
+            selection.accountName ?? selection.accountId
+          );
           const fields = windsorResolveFields(def, selection.fields);
           const rows = await windsorFetchData({
             source: def.slug,
