@@ -11,14 +11,42 @@ interface MessagesResponse {
   content?: { type: string; text?: string }[];
 }
 
+/**
+ * A file to hand to the model alongside the prompt. `image` reads pictures,
+ * `document` reads PDFs — both fetched by URL (e.g. a public Blob URL). Plain
+ * text should be inlined into the prompt string by the caller instead.
+ */
+export interface SummaryAttachment {
+  kind: "image" | "document";
+  url: string;
+}
+
+type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; source: { type: "url"; url: string } }
+  | { type: "document"; source: { type: "url"; url: string } };
+
 export async function summarize(
   prompt: string,
-  { maxTokens = 1024 }: { maxTokens?: number } = {}
+  {
+    maxTokens = 1024,
+    attachments = [],
+  }: { maxTokens?: number; attachments?: SummaryAttachment[] } = {}
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error("Missing ANTHROPIC_API_KEY environment variable");
   }
+
+  const attachmentBlocks: ContentBlock[] = attachments.map((a) => ({
+    type: a.kind,
+    source: { type: "url", url: a.url },
+  }));
+  // Attachments first, then the instruction text — Anthropic reads content in order.
+  const content: ContentBlock[] = [
+    ...attachmentBlocks,
+    { type: "text", text: prompt },
+  ];
 
   const res = await fetch(MESSAGES_ENDPOINT, {
     method: "POST",
@@ -30,7 +58,7 @@ export async function summarize(
     body: JSON.stringify({
       model: MODEL,
       max_tokens: maxTokens,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content }],
     }),
   });
 

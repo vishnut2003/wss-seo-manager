@@ -33,16 +33,21 @@ export function DailySummaryForm({
   enabled: initialEnabled,
   recipients: initialRecipients,
   connectors: initialConnectors,
+  includeDailySubmission: initialIncludeDailySubmission,
 }: {
   projectId: string;
   canManage: boolean;
   enabled: boolean;
   recipients: string;
   connectors: ConnectorRow[];
+  includeDailySubmission: boolean;
 }) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [recipients, setRecipients] = useState(initialRecipients);
+  const [includeDailySubmission, setIncludeDailySubmission] = useState(
+    initialIncludeDailySubmission
+  );
   const [selected, setSelected] = useState<Record<string, boolean>>(
     Object.fromEntries(initialConnectors.map((c) => [c.provider, c.enabled]))
   );
@@ -61,6 +66,7 @@ export function DailySummaryForm({
       enabledConnectors: Object.entries(selected)
         .filter(([, v]) => v)
         .map(([k]) => k),
+      includeDailySubmission,
     });
     setSaving(false);
 
@@ -157,6 +163,24 @@ export function DailySummaryForm({
               />
             </div>
           ))}
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-purple-100 bg-purple-50/40 p-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Include daily submissions
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Fold the previous day&apos;s team updates and attached files into
+              the digest.
+            </p>
+          </div>
+          <Switch
+            checked={includeDailySubmission}
+            onCheckedChange={setIncludeDailySubmission}
+            disabled={!canManage}
+            aria-label="Include daily submissions"
+          />
         </div>
       </CardContent>
 

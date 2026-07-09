@@ -6,6 +6,7 @@ import {
   Settings,
   CalendarDays,
   CalendarRange,
+  ClipboardCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -48,6 +49,16 @@ export function buildNavSections(projectId: string): NavSection[] {
           title: "Windsor.ai",
           href: `${base}/connectors/windsor`,
           icon: Waypoints,
+        },
+      ],
+    },
+    {
+      label: "Updates",
+      items: [
+        {
+          title: "Daily Submission",
+          href: `${base}/updates/daily-submission`,
+          icon: ClipboardCheck,
         },
       ],
     },

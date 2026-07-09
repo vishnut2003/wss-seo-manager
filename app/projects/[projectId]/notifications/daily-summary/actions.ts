@@ -24,6 +24,7 @@ export interface DailySummaryInput {
   enabled: boolean;
   recipients: string;
   enabledConnectors: string[];
+  includeDailySubmission: boolean;
 }
 
 export async function updateDailySummarySettings(
@@ -65,7 +66,12 @@ export async function updateDailySummarySettings(
     await connectDB();
     await NotificationSetting.findOneAndUpdate(
       { projectId, type: TYPE },
-      { enabled: input.enabled, recipients, enabledConnectors },
+      {
+        enabled: input.enabled,
+        recipients,
+        enabledConnectors,
+        includeDailySubmission: input.includeDailySubmission,
+      },
       { upsert: true, setDefaultsOnInsert: true }
     );
   } catch {

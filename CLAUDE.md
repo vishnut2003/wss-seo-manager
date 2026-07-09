@@ -48,7 +48,7 @@ Internal dashboard for Web Spider Solutions to manage their SEO projects.
 
 `MONGODB_URI`, `DB_NAME`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASS`, `AUTH_SECRET`.
 
-Connector/integration keys (read directly via `process.env` in server-only lib modules): `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`/`RESEND_FROM_EMAIL`, `CRON_SECRET`, and **`WINDSOR_API_KEY`** — a single app-wide Windsor.ai key (all projects share one Windsor account; the Windsor connector is API-key based, not per-project OAuth).
+Connector/integration keys (read directly via `process.env` in server-only lib modules): `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`/`RESEND_FROM_EMAIL`, `CRON_SECRET`, **`WINDSOR_API_KEY`** — a single app-wide Windsor.ai key (all projects share one Windsor account; the Windsor connector is API-key based, not per-project OAuth) — and **`BLOB_READ_WRITE_TOKEN`** — Vercel Blob token for daily-submission file uploads (auto-injected on Vercel when a Blob store is connected; set manually for local dev).
 
 ## Commands
 

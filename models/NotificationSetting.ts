@@ -21,6 +21,8 @@ export interface INotificationSetting {
   enabled: boolean;
   recipients: string[];
   enabledConnectors: ConnectionProvider[];
+  /** Fold the previous day's user submissions into the daily summary email. */
+  includeDailySubmission: boolean;
   lastSentAt?: Date;
   lastStatus?: string;
   createdAt: Date;
@@ -43,6 +45,7 @@ const notificationSettingSchema = new Schema<
       enum: CONNECTION_PROVIDERS,
       default: [],
     },
+    includeDailySubmission: { type: Boolean, default: false },
     lastSentAt: { type: Date },
     lastStatus: { type: String },
   },

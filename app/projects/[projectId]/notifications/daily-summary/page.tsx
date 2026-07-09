@@ -106,6 +106,11 @@ export default async function DailySummaryPage({
             Console data lags ~2–3 days, so it reports its latest available day —
             the email states each source&apos;s exact date.
           </p>
+          <p>
+            With <strong>daily submissions</strong> enabled, the previous
+            day&apos;s team updates (and the contents of any attached files) are
+            read and woven into the digest, with links to each file included.
+          </p>
         </CardContent>
       </Card>
 
@@ -115,6 +120,7 @@ export default async function DailySummaryPage({
         enabled={setting?.enabled ?? false}
         recipients={(setting?.recipients ?? []).join(", ")}
         connectors={connectors}
+        includeDailySubmission={setting?.includeDailySubmission ?? false}
       />
     </div>
   );
