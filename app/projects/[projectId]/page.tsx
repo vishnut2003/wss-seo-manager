@@ -15,7 +15,6 @@ import {
   Timer,
   Search,
   BarChart3,
-  Megaphone,
   Waypoints,
   CalendarDays,
   CalendarRange,
@@ -246,12 +245,6 @@ export default async function ProjectDashboardPage({
       description: "Traffic & sessions",
       href: connectorPath(projectId, "google-analytics"),
       icon: BarChart3,
-    },
-    {
-      label: "Google Ads",
-      description: "Campaign spend",
-      href: connectorPath(projectId, "google-ads"),
-      icon: Megaphone,
     },
     {
       label: "Windsor.ai",

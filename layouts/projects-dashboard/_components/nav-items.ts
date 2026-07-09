@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   Search,
   BarChart3,
-  TrendingUp,
   Waypoints,
   Settings,
   CalendarDays,
@@ -44,11 +43,6 @@ export function buildNavSections(projectId: string): NavSection[] {
           title: "Google Analytics",
           href: `${base}/connectors/google-analytics`,
           icon: BarChart3,
-        },
-        {
-          title: "Google Ads",
-          href: `${base}/connectors/google-ads`,
-          icon: TrendingUp,
         },
         {
           title: "Windsor.ai",

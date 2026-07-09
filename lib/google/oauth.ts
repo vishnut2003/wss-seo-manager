@@ -26,12 +26,6 @@ export const ANALYTICS_SCOPES = [
   ...IDENTITY_SCOPES,
 ].join(" ");
 
-/** Google Ads API access plus identity. */
-export const GOOGLE_ADS_SCOPES = [
-  "https://www.googleapis.com/auth/adwords",
-  ...IDENTITY_SCOPES,
-].join(" ");
-
 /** Refresh tokens slightly before expiry to avoid edge-of-window failures. */
 const EXPIRY_BUFFER_MS = 60_000;
 

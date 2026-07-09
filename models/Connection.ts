@@ -8,13 +8,11 @@ import { Schema, model, models, type Model } from "mongoose";
 export type ConnectionProvider =
   | "google-search-console"
   | "google-analytics"
-  | "google-ads"
   | "windsor";
 
 export const CONNECTION_PROVIDERS: ConnectionProvider[] = [
   "google-search-console",
   "google-analytics",
-  "google-ads",
   "windsor",
 ];
 
@@ -50,12 +48,6 @@ export interface IConnection {
   siteUrl?: string;
   /** Selected GA4 property, e.g. `properties/123456789`. */
   propertyId?: string;
-  /** Selected Google Ads customer, digits only, e.g. `1234567890`. */
-  customerId?: string;
-  /** The manager (MCC) account the selection is accessed through, if any. */
-  loginCustomerId?: string;
-  /** Account currency for formatting cost, e.g. `USD`. */
-  currencyCode?: string;
   /** Windsor.ai accounts attached to this project (across sources). */
   windsorAccounts?: WindsorAccountSelection[];
   /** Email of the user who created the connection. */
@@ -87,9 +79,6 @@ const connectionSchema = new Schema<IConnection, ConnectionModel>(
     scope: { type: String, required: oauthOnly },
     siteUrl: { type: String },
     propertyId: { type: String },
-    customerId: { type: String },
-    loginCustomerId: { type: String },
-    currencyCode: { type: String },
     windsorAccounts: {
       type: [
         new Schema<WindsorAccountSelection>(

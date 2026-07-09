@@ -1,6 +1,5 @@
 import {
   ANALYTICS_SCOPES,
-  GOOGLE_ADS_SCOPES,
   SEARCH_CONSOLE_SCOPES,
 } from "@/lib/google/oauth";
 
@@ -12,13 +11,11 @@ import {
 
 export type ConnectorProvider =
   | "google-search-console"
-  | "google-analytics"
-  | "google-ads";
+  | "google-analytics";
 
 export const CONNECTOR_CONFIG: Record<ConnectorProvider, { scope: string }> = {
   "google-search-console": { scope: SEARCH_CONSOLE_SCOPES },
   "google-analytics": { scope: ANALYTICS_SCOPES },
-  "google-ads": { scope: GOOGLE_ADS_SCOPES },
 };
 
 /** Per-provider httpOnly CSRF cookie so concurrent flows don't collide. */
