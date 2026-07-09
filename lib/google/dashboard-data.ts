@@ -18,6 +18,13 @@ import {
   type GaRow,
   type GaTrendMonth,
 } from "@/lib/google/analytics";
+import {
+  fetchData as windsorFetchData,
+  getSourceDef as windsorSourceDef,
+  resolveFields as windsorResolveFields,
+  toNumber as windsorToNumber,
+  type WindsorFormat,
+} from "@/lib/windsor/client";
 
 /**
  * Per-project dashboard data. Pulls a 28-day window (with the prior 28 days for
@@ -54,9 +61,32 @@ export interface GaDashboard {
   monthly?: GaTrendMonth[];
 }
 
+export interface WindsorMetric {
+  id: string;
+  label: string;
+  format: WindsorFormat;
+  value: number;
+}
+
+export interface WindsorAccountData {
+  source: string;
+  sourceLabel: string;
+  accountId: string;
+  accountName?: string;
+  /** Selected fields with their last-30-day totals. */
+  metrics: WindsorMetric[];
+}
+
+export interface WindsorDashboard {
+  status: ConnectorStatus;
+  /** One entry per selected Windsor account that loaded successfully. */
+  accounts?: WindsorAccountData[];
+}
+
 export interface ProjectDashboard {
   gsc: GscDashboard;
   ga: GaDashboard;
+  windsor: WindsorDashboard;
   /** True when at least one connector returned data. */
   hasData: boolean;
 }
@@ -125,12 +155,60 @@ async function loadGa(conn: ConnectionLean | null): Promise<GaDashboard> {
   }
 }
 
+async function loadWindsor(
+  conn: ConnectionLean | null
+): Promise<WindsorDashboard> {
+  if (!conn) return { status: "not-connected" };
+  const selections = conn.windsorAccounts ?? [];
+  if (selections.length === 0) return { status: "no-property" };
+
+  // Each selected account loads independently; failed ones are skipped.
+  const results = await Promise.all(
+    selections.map(async (selection): Promise<WindsorAccountData | null> => {
+      const def = windsorSourceDef(selection.source);
+      if (!def) return null;
+      try {
+        const fieldIds = windsorResolveFields(def, selection.fields);
+        const rows = await windsorFetchData({
+          source: def.slug,
+          fields: fieldIds,
+          accounts: [selection.accountId],
+          datePreset: "last_30d",
+        });
+        const totals = rows[0] ?? {};
+        const byId = new Map(def.metrics.map((m) => [m.id, m]));
+        return {
+          source: def.slug,
+          sourceLabel: def.label,
+          accountId: selection.accountId,
+          accountName: selection.accountName,
+          metrics: fieldIds.map((id) => {
+            const m = byId.get(id);
+            return {
+              id,
+              label: m?.label ?? id,
+              format: m?.format ?? "number",
+              value: windsorToNumber(totals[id]),
+            };
+          }),
+        };
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  const accounts = results.filter((r): r is WindsorAccountData => r !== null);
+  if (accounts.length === 0) return { status: "error" };
+  return { status: "ok", accounts };
+}
+
 export async function getProjectDashboard(
   projectId: string
 ): Promise<ProjectDashboard> {
   await connectDB();
 
-  const [gscConn, gaConn] = await Promise.all([
+  const [gscConn, gaConn, windsorConn] = await Promise.all([
     Connection.findOne({
       projectId,
       provider: "google-search-console",
@@ -139,11 +217,25 @@ export async function getProjectDashboard(
       projectId,
       provider: "google-analytics",
     }).lean<ConnectionLean | null>(),
+    Connection.findOne({
+      projectId,
+      provider: "windsor",
+    }).lean<ConnectionLean | null>(),
   ]);
 
-  const [gsc, ga] = await Promise.all([loadGsc(gscConn), loadGa(gaConn)]);
+  const [gsc, ga, windsor] = await Promise.all([
+    loadGsc(gscConn),
+    loadGa(gaConn),
+    loadWindsor(windsorConn),
+  ]);
 
-  return { gsc, ga, hasData: gsc.status === "ok" || ga.status === "ok" };
+  return {
+    gsc,
+    ga,
+    windsor,
+    hasData:
+      gsc.status === "ok" || ga.status === "ok" || windsor.status === "ok",
+  };
 }
 
 /** MoM percent change; null when there's no prior-period baseline. */

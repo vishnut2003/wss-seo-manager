@@ -16,6 +16,11 @@ import {
   getConnectorData as gaConnectorData,
   getTotals as gaTotals,
 } from "@/lib/google/analytics";
+import {
+  getConnectorData as windsorConnectorData,
+  getSourceDef as windsorSourceDef,
+  resolveFields as windsorResolveFields,
+} from "@/lib/windsor/client";
 
 /**
  * Read-only Claude tools that let the SEO Manager assistant pull live connector
@@ -72,10 +77,12 @@ export const TOOLS: Anthropic.Tool[] = [
     name: "get_project_overview",
     description:
       "Get a full performance snapshot for this project from all connected " +
-      "sources (Google Search Console + Google Analytics). Returns each " +
-      "connector's status, last-28-day totals with month-over-month change, " +
-      "top search queries, top pages, top traffic channels, and a 6-month " +
-      "trend. Use this first for most questions about how the project is doing.",
+      "sources (Google Search Console, Google Analytics, and the Windsor.ai " +
+      "accounts attached to this project). Returns each connector's status, " +
+      "last-28-day totals with month-over-month change, top search queries, " +
+      "top pages, top traffic channels, per-account Windsor totals, and a " +
+      "6-month trend. Use this first for most questions about how the " +
+      "project is doing.",
     input_schema: { type: "object", properties: {} },
   },
   {
@@ -115,6 +122,20 @@ export const TOOLS: Anthropic.Tool[] = [
         },
       },
     },
+  },
+  {
+    name: "get_windsor_detail",
+    description:
+      "Get cross-channel marketing data from Windsor.ai for each account " +
+      "attached to this project (e.g. a Google Ads account, a Search Console " +
+      "site, a Meta Ads account, GA4, Google Business Profile). Returns, per " +
+      "account, last-30-day totals (clicks, impressions, ad spend, " +
+      "conversions, CTR where available) and the top breakdown rows " +
+      "(campaigns, queries, sources…). Use for paid-ads, ad-spend, or ROI " +
+      "questions. Returns a status string like 'not-connected' or " +
+      "'no-accounts' when the connector isn't set up — relay that instead of " +
+      "inventing numbers.",
+    input_schema: { type: "object", properties: {} },
   },
 ];
 
@@ -168,6 +189,18 @@ async function runProjectOverview(projectId: string): Promise<unknown> {
       topPages: dash.ga.topPages,
       topChannels: dash.ga.topChannels,
       monthlyTrend: dash.ga.monthly,
+    },
+    windsorAccounts: {
+      status: dash.windsor.status,
+      note: "Last-30-day totals per Windsor.ai account attached to this project. Use get_windsor_detail for top campaigns/queries.",
+      accounts: dash.windsor.accounts?.map((account) => ({
+        source: account.sourceLabel,
+        account: account.accountName ?? account.accountId,
+        totals: account.metrics.reduce<Record<string, number>>((acc, m) => {
+          acc[m.label] = m.value;
+          return acc;
+        }, {}),
+      })),
     },
   };
 }
@@ -255,6 +288,51 @@ async function runAnalyticsDetail(
   };
 }
 
+async function runWindsorDetail(projectId: string): Promise<unknown> {
+  await connectDB();
+  const conn = await Connection.findOne({
+    projectId,
+    provider: "windsor",
+  }).lean<ConnectionLean | null>();
+  if (!conn) return { status: "not-connected" };
+
+  const selections = conn.windsorAccounts ?? [];
+  if (selections.length === 0) {
+    return {
+      status: "no-accounts (connected, but no Windsor accounts selected)",
+    };
+  }
+
+  // Each attached account reports independently; failures don't hide the rest.
+  const accounts = await Promise.all(
+    selections.map(async (selection) => {
+      const def = windsorSourceDef(selection.source);
+      const base = {
+        source: selection.source,
+        sourceLabel: def?.label ?? selection.source,
+        account: selection.accountName ?? selection.accountId,
+      };
+      if (!def) return { ...base, status: "unknown-source" };
+      const fields = windsorResolveFields(def, selection.fields);
+      try {
+        const data = await windsorConnectorData(def, fields, selection.accountId);
+        return {
+          ...base,
+          status: "ok",
+          range: data.rangeLabel,
+          totals: data.totals,
+          breakdownBy: def.dimensionLabel,
+          topRows: data.rows,
+        };
+      } catch {
+        return { ...base, status: "error (data temporarily unavailable)" };
+      }
+    })
+  );
+
+  return { status: "ok", accounts };
+}
+
 /** Dispatch a tool call by name. Never throws — returns an error payload. */
 export async function runTool(
   projectId: string,
@@ -269,6 +347,8 @@ export async function runTool(
         return await runSearchConsoleDetail(projectId, input);
       case "get_analytics_detail":
         return await runAnalyticsDetail(projectId, input);
+      case "get_windsor_detail":
+        return await runWindsorDetail(projectId);
       default:
         return { error: `Unknown tool: ${name}` };
     }

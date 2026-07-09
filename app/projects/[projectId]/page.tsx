@@ -16,6 +16,7 @@ import {
   Search,
   BarChart3,
   Megaphone,
+  Waypoints,
   CalendarDays,
   CalendarRange,
   Trophy,
@@ -37,6 +38,7 @@ import {
   formatNumber,
   formatPosition,
 } from "@/components/ui-elements/connectors/format";
+import { formatWindsorValue } from "@/lib/windsor/client";
 import {
   StatCard,
   StatCardGrid,
@@ -96,7 +98,7 @@ export default async function ProjectDashboardPage({
   const canManage = role === "super_admin" || role === "admin";
   const firstName = session?.user?.name?.split(" ")[0];
 
-  const { gsc, ga, hasData } = await getProjectDashboard(projectId);
+  const { gsc, ga, windsor, hasData } = await getProjectDashboard(projectId);
 
   // KPI cards — prefer GSC, fall back to GA.
   let kpis: StatCardProps[] = [];
@@ -172,6 +174,24 @@ export default async function ProjectDashboardPage({
     ];
   }
 
+  // Windsor account KPIs (app-wide connector) — one row per selected account.
+  const windsorSections =
+    windsor.status === "ok"
+      ? (windsor.accounts ?? []).map((account) => ({
+          key: `${account.source}-${account.accountId}`,
+          title: `${account.sourceLabel} · ${account.accountName ?? account.accountId}`,
+          kpis: account.metrics.slice(0, 4).map(
+            (m): StatCardProps => ({
+              icon: Waypoints,
+              label: m.label,
+              value: formatWindsorValue(m.value, m.format),
+              trend: null,
+              hint: "last 30 days",
+            })
+          ),
+        }))
+      : [];
+
   // Trend chart — clicks (GSC) + sessions (GA), aligned by month.
   const labels = gsc.monthly?.map((m) => m.label) ??
     ga.monthly?.map((m) => m.label) ?? [];
@@ -232,6 +252,12 @@ export default async function ProjectDashboardPage({
       description: "Campaign spend",
       href: connectorPath(projectId, "google-ads"),
       icon: Megaphone,
+    },
+    {
+      label: "Windsor.ai",
+      description: "Cross-channel ads",
+      href: `/projects/${projectId}/connectors/windsor`,
+      icon: Waypoints,
     },
     {
       label: "Daily Summary",
@@ -334,6 +360,23 @@ export default async function ProjectDashboardPage({
                 ))}
               </StatCardGrid>
             )}
+
+            {/* Windsor.ai KPIs — one section per selected account */}
+            {windsorSections.map((section) => (
+              <section key={section.key} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Waypoints className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+                    {section.title}
+                  </h2>
+                </div>
+                <StatCardGrid>
+                  {section.kpis.map((kpi) => (
+                    <StatCard key={kpi.label} {...kpi} />
+                  ))}
+                </StatCardGrid>
+              </section>
+            ))}
 
             {/* Charts */}
             <div className="grid gap-5 lg:grid-cols-3">

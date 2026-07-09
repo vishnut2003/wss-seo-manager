@@ -8,7 +8,6 @@ import Connection, { type IConnection } from "@/models/Connection";
 import NotificationSetting, {
   type INotificationSetting,
 } from "@/models/NotificationSetting";
-import { connectorPath } from "@/lib/google/connector-flow";
 import {
   Card,
   CardContent,
@@ -23,6 +22,7 @@ const TYPE = "daily-summary" as const;
 const SUPPORTED = [
   { provider: "google-search-console", label: "Google Search Console" },
   { provider: "google-analytics", label: "Google Analytics" },
+  { provider: "windsor", label: "Windsor.ai" },
 ] as const;
 
 export default async function DailySummaryPage({
@@ -63,13 +63,15 @@ export default async function DailySummaryPage({
     const configured =
       provider === "google-search-console"
         ? Boolean(conn?.siteUrl)
-        : Boolean(conn?.propertyId);
+        : provider === "google-analytics"
+          ? Boolean(conn?.propertyId)
+          : Boolean(conn?.windsorAccounts?.length);
     return {
       provider,
       label,
       configured,
       enabled: setting?.enabledConnectors?.includes(provider) ?? false,
-      manageHref: connectorPath(projectId, provider),
+      manageHref: `/projects/${projectId}/connectors/${provider}`,
     };
   });
 

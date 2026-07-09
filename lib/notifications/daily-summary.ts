@@ -5,6 +5,12 @@ import NotificationSetting from "@/models/NotificationSetting";
 import { GoogleReconnectError, getValidAccessToken } from "@/lib/google/oauth";
 import { getDailySnapshot as gscDailySnapshot } from "@/lib/google/search-console";
 import { getDailySnapshot as gaDailySnapshot } from "@/lib/google/analytics";
+import {
+  fetchData as windsorFetchData,
+  getSourceDef as windsorSourceDef,
+  resolveFields as windsorResolveFields,
+  formatWindsorValue,
+} from "@/lib/windsor/client";
 import { summarize } from "@/lib/anthropic";
 import { sendEmail } from "@/lib/email";
 
@@ -24,6 +30,7 @@ export interface RunResult {
 const PROVIDER_LABELS: Record<string, string> = {
   "google-search-console": "Google Search Console",
   "google-analytics": "Google Analytics",
+  windsor: "Windsor.ai",
 };
 
 function fmtDuration(seconds: number): string {
@@ -74,6 +81,46 @@ export async function runDailySummary(
 
       if (!conn) {
         blocks.push(`## ${label}\nNot connected.`);
+        continue;
+      }
+
+      if (provider === "windsor") {
+        const selections = conn.windsorAccounts ?? [];
+        if (selections.length === 0) {
+          blocks.push(`## ${label}\nNo accounts selected.`);
+          continue;
+        }
+        // One metric block per selected Windsor account.
+        for (const selection of selections) {
+          const def = windsorSourceDef(selection.source);
+          if (!def) continue;
+          const accountLabel = selection.accountName ?? selection.accountId;
+          const fields = windsorResolveFields(def, selection.fields);
+          const rows = await windsorFetchData({
+            source: def.slug,
+            fields,
+            accounts: [selection.accountId],
+            datePreset: "last_1d",
+          });
+          const totals = rows[0];
+          if (!totals) {
+            blocks.push(
+              `## ${label} — ${def.label} · ${accountLabel}\nNo recent data available.`
+            );
+            continue;
+          }
+          hasData = true;
+          const lines = def.metrics
+            .filter((m) => fields.includes(m.id))
+            .map(
+              (m) =>
+                `- ${m.label}: ${formatWindsorValue(totals[m.id], m.format)}`
+            )
+            .join("\n");
+          blocks.push(
+            `## ${label} — ${def.label} · ${accountLabel} — yesterday\n${lines}`
+          );
+        }
         continue;
       }
 

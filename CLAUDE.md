@@ -48,6 +48,8 @@ Internal dashboard for Web Spider Solutions to manage their SEO projects.
 
 `MONGODB_URI`, `DB_NAME`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASS`, `AUTH_SECRET`.
 
+Connector/integration keys (read directly via `process.env` in server-only lib modules): `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `GOOGLE_ADS_DEVELOPER_TOKEN`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`/`RESEND_FROM_EMAIL`, `CRON_SECRET`, and **`WINDSOR_API_KEY`** — a single app-wide Windsor.ai key (all projects share one Windsor account; the Windsor connector is API-key based, not per-project OAuth).
+
 ## Commands
 
 - `npm run dev` — dev server
